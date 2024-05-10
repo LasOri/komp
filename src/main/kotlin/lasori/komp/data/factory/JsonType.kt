@@ -7,5 +7,19 @@ enum class JsonType {
     string,
     array,
     `object`,
-    `null`
+    `null`;
+
+    companion object {
+        fun fromString(type: String) = when (type.lowercase()) {
+            "boolean" -> boolean
+            "numeric" -> int
+            "double" -> double
+            "string" -> string
+            "array" -> array
+            "object" -> `object`
+            "null" -> `null`
+            else -> throw IllegalArgumentException("Unknown type: $type")
+        }
+    }
+
 }

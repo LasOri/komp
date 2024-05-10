@@ -1,0 +1,10 @@
+[versions]
+serialization = "1.6.3"
+mockk = "1.13.10"
+
+[libraries]
+kotlinx-serialization = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+
+[plugins]
+

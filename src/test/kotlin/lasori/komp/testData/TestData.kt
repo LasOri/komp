@@ -13,6 +13,7 @@ data class TestData(
     val innerData: InnerData,
     val innerList: List<InnerData>,
     val innerMap: Map<String, InnerData>,
+    val enum: TestEnum,
     val optional: String?
 )
 
@@ -30,3 +31,10 @@ data class InnerData(
 data class SubData(
     val text: String
 )
+
+@Serializable
+enum class TestEnum {
+    good,
+    bad,
+    ugly
+}

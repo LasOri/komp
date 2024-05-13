@@ -4,11 +4,7 @@ import lasori.komp.data.CodingKey
 import lasori.komp.data.factory.JsonType
 
 fun Exception.extractPath(): List<CodingKey>? {
-    val regexp = "at path: (.*)".toRegex()
-    val matches = message?.let {
-        val match = regexp.find(it)
-        match?.groupValues?.get(1)?.split(".")
-    }
+    val matches = message?.wordAfter("path")?.split(".")
     return matches?.let {
         it.drop(1).map { key ->
             CodingKey(key = key)
@@ -16,19 +12,23 @@ fun Exception.extractPath(): List<CodingKey>? {
     }
 }
 
-fun Exception.extractType(): JsonType? {
-    val type = this.message?.wordBefore("literal") ?:
+fun Exception.extractType(): String? {
+    return this.message?.wordBefore("literal") ?:
     this.message?.wordBefore("for input") ?:
     this.message?.wordBefore("but got") ?:
+    this.message?.wordBefore("does not") ?:
     this.message?.arrayType() ?:
     this.message?.objectType()
-    return type?.let {
-        JsonType.fromString(it)
-    }
 }
 
-private fun String.wordBefore(beforeText: String): String? {
-    val regexp = "\\b\\W?(\\w+)\\W*\\b(?=$beforeText)".toRegex()
+private fun String.wordBefore(text: String): String? {
+    val regexp = "\\b\\W?(\\w+)\\W*\\b(?=$text)".toRegex()
+    val match = regexp.find(this)
+    return match?.groupValues?.last()
+}
+
+private fun String.wordAfter(text: String): String? {
+    val regexp = "(?<=$text)\\W?\\s?(.*)".toRegex()
     val match = regexp.find(this)
     return match?.groupValues?.last()
 }

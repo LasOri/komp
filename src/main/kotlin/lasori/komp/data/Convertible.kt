@@ -4,7 +4,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
-class Serializable<Serializable, Serializer>(private val serializable: Serializable, private val serializer: Serializer) where
+class Convertible<Serializable, Serializer>(private val serializable: Serializable, private val serializer: Serializer) where
 Serializer: KSerializer<Serializable> {
 
     val type: String by lazy {

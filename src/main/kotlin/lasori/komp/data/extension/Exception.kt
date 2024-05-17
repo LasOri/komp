@@ -1,7 +1,6 @@
 package lasori.komp.data.extension
 
 import lasori.komp.data.CodingKey
-import lasori.komp.data.factory.JsonType
 
 fun Exception.extractPath(): List<CodingKey>? {
     val matches = message?.wordAfter("path")?.split(".")

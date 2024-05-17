@@ -6,38 +6,76 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.jsonObject
 import lasori.komp.data.CodingKey
-import lasori.komp.data.Serializable
+import lasori.komp.data.Convertible
 import lasori.komp.data.extension.extractPath
 import lasori.komp.data.extension.extractType
+import lasori.komp.data.extension.loadResource
 import lasori.komp.data.extension.update
 import lasori.komp.data.factory.JsonElementFactory
-import lasori.komp.data.factory.JsonType
-import lasori.komp.data.generator.BoolGenerator
-import lasori.komp.data.generator.DoubleGenerator
-import lasori.komp.data.generator.IntGenerator
-import lasori.komp.data.generator.StringGenerator
+import lasori.komp.data.generator.Generator
+import lasori.komp.data.generator.GenericGenerator
 import lasori.komp.data.generator.random.BoolRandom
 import lasori.komp.data.generator.random.DoubleRandom
 import lasori.komp.data.generator.random.IntRandom
 import lasori.komp.data.generator.random.StringRandom
+import lasori.komp.data.generator.valueType.DoubleType
+import lasori.komp.data.generator.valueType.IntType
+import lasori.komp.data.generator.valueType.StringType
+import kotlin.reflect.KProperty1
 
-class Komp {
+object Komp {
 
-    private val stringGenerator = StringGenerator(random = StringRandom())
+    private val stringGenerator = GenericGenerator(random = StringRandom())
 
     val json = Json {
         prettyPrint = false
     }
-    val jsonDataFactory = JsonElementFactory(
-        boolGenerator = BoolGenerator(random = BoolRandom()),
-        intGenerator = IntGenerator(random = IntRandom()),
-        doubleGenerator = DoubleGenerator(random = DoubleRandom()),
-        stringGenerator = stringGenerator
+    var jsonDataFactory = JsonElementFactory(
+        boolGenerator = GenericGenerator(random = BoolRandom()),
+        intGenerator = GenericGenerator(random = IntRandom()),
+        doubleGenerator = GenericGenerator(random = DoubleRandom()),
+        stringGenerator = stringGenerator,
+        customGenerators = emptyList(),
+        json = json
     )
+    private val predefinedValues = loadResource("values.json")?.let {
+        this.json.parseToJsonElement(it)
+    }
+
+    fun setup(intType: IntType = IntType.random,
+              doubleType: DoubleType = DoubleType.random,
+              stringType: StringType = StringType.random,
+              vararg customGenerators: Generator<Convertible<*, *>>) {
+        val intGenerator = when (intType) {
+            IntType.random -> GenericGenerator(random = IntRandom())
+            IntType.prime -> GenericGenerator(random = IntRandom(), preparedValues = predefinedList("primeNumbers"))
+            IntType.fibonacci -> GenericGenerator(random = IntRandom(), preparedValues = predefinedList("fibonacciNumbers"))
+        }
+        val doubleGenerator = when (doubleType) {
+            DoubleType.random -> GenericGenerator(random = DoubleRandom())
+            DoubleType.famousConstants -> GenericGenerator(random = DoubleRandom(), preparedValues = predefinedList("famousConstants"))
+        }
+        val stringGenerator = when (stringType) {
+            StringType.random -> GenericGenerator(random = StringRandom())
+            StringType.movieQuote -> GenericGenerator(random = StringRandom(), preparedValues = predefinedList("movieQuotes"))
+            StringType.movieHero -> GenericGenerator(random = StringRandom(), preparedValues = predefinedList("movieHeroes"))
+            StringType.movieVillain -> GenericGenerator(random = StringRandom(), preparedValues = predefinedList("movieVillains"))
+        }
+        jsonDataFactory = JsonElementFactory(
+            boolGenerator = GenericGenerator(random = BoolRandom()),
+            intGenerator = intGenerator,
+            doubleGenerator = doubleGenerator,
+            stringGenerator = stringGenerator,
+            customGenerators = customGenerators.toList(),
+            json = json
+        )
+    }
 
     @OptIn(ExperimentalSerializationApi::class)
-    inline fun <reified Value>kompose(vararg serializable: Serializable<*, *>): Value {
+    inline fun <reified Value>kompose(predefinedValues: Map<KProperty1<Value, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Value {
         var result: Value? = null
         var jsonData: JsonElement = JsonObject(emptyMap())
         do {
@@ -50,7 +88,8 @@ class Komp {
                         val newPath = path.toMutableList().apply {
                             add(CodingKey(it))
                         }
-                        val updatedJsonData =  jsonData.update(newPath, jsonDataFactory.create(JsonType.`object`))
+                        val value = this.jsonValue<Value>(predefinedValues, it)
+                        val updatedJsonData =  jsonData.update(newPath, value)
                         jsonData = updatedJsonData
                     }
                 }
@@ -58,20 +97,35 @@ class Komp {
                 val path = e.extractPath()
                 val type = e.extractType()
 
-                val jsonElement: JsonElement? = serializable.firstOrNull {
+                val jsonElement: JsonElement? = convertibles.firstOrNull {
                     it.type == type
                 }?.toJsonElement(json)
-                print("Exception: $e, path: $path, type: $type, jsonElement: $jsonElement \n")
                 if (path != null && type != null) {
-                    val value = jsonElement ?: jsonDataFactory.create(JsonType.fromString(type))
+                    val value = jsonElement ?: jsonDataFactory.create(type)
                     val newJsonData = jsonData.update(path, value)
                     jsonData = newJsonData as JsonObject
                 } else {
-                    println("Lofasz: \n")
+                    e.printStackTrace()
                 }
             }
         } while (result == null)
         return result
+    }
+
+    inline fun <reified Value>jsonValue(predefinedValues: Map<KProperty1<Value, *>, Convertible<*, *>>?, missingField: String): JsonElement {
+        var value = jsonDataFactory.create("object")
+        predefinedValues?.keys?.firstOrNull { key ->
+            key.name.lowercase() == missingField.lowercase()
+        }?.let { key ->
+            value = predefinedValues[key]!!.toJsonElement(json)
+        }
+        return value
+    }
+
+    private inline fun <reified ValueType>predefinedList(key: String): List<ValueType>? {
+        return predefinedValues?.jsonObject?.get(key)?.let {
+            json.decodeFromJsonElement(it)
+        }
     }
 
 }

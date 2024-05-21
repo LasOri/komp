@@ -1,6 +1,7 @@
 package lasori.komp
 
 import kotlinx.serialization.builtins.serializer
+import lasori.komp.annotation.Kompose
 import lasori.komp.data.Convertible
 import lasori.komp.data.generator.Generator
 import lasori.komp.data.generator.valueType.DoubleType
@@ -17,6 +18,9 @@ class KompTest {
 
     lateinit var komp: Komp
 
+    @Kompose
+    lateinit var testData: TestData
+
     @BeforeTest
     fun setUp() {
         val testEnumGenerator = object : Generator<Convertible<*, *>> {
@@ -26,7 +30,9 @@ class KompTest {
             }
         }
         komp = Komp
-        komp.setup(intType = IntType.prime,
+        komp.setup(
+            host = this,
+            intType = IntType.prime,
             doubleType = DoubleType.famousConstants,
             stringType = StringType.movieQuote,
             testEnumGenerator)
@@ -42,6 +48,11 @@ class KompTest {
 
         assertNotNull(testData)
         assertEquals(expectedValue, testData.text)
+    }
+
+    @Test
+    fun testKompose_withAnnotation() = run {
+        assertNotNull(testData)
     }
 
 }

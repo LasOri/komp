@@ -1,5 +1,6 @@
 package lasori.komp.data.extension
 
+import lasori.komp.function.loadResource
 import org.junit.jupiter.api.Assertions.assertEquals
 import kotlin.test.Test
 

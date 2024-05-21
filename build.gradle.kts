@@ -11,6 +11,7 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation(libs.kotlinx.serialization)
     implementation(libs.mockk)
     testImplementation(kotlin("test"))

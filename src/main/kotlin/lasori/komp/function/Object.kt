@@ -9,31 +9,36 @@ fun loadResource(name: String): String? = {}::class.java.classLoader.getResource
 
 inline fun <reified AnnotationType>scanAnnotatedProperties(host: Any): Set<KMutableProperty<*>> where AnnotationType: Annotation {
     val packageName = host.javaClass.packageName
-    return host::class.java.classLoader
-        .resources(packageName.replace(".", "/"))
-        .map {
-            File(it.file)
-                .walkTopDown()
-                .filter { file ->
-                    file.isFile
-                }
-                .toList()
-        }
-        .toList()
-        .flatten()
-        .map {
-            val clazz = it.path.substring(it.path.indexOf(packageName.replace(".", "/"))).substringBefore(".").substringBefore("$").replace("/", ".")
-            Class.forName(clazz)
-        }
-        .map {
-            it.kotlin.declaredMemberProperties
-                .filter { property ->
-                    property.findAnnotation<AnnotationType>() != null && property is KMutableProperty<*>
-                }
-                .map { property ->
-                    property as KMutableProperty<*>
-                }
-        }
-        .flatten()
+    return filesOfHost(host, packageName)
+        .map { classFromFile(it, packageName) }
+        .flatMap { annotatedPropertiesFromClass<AnnotationType>(it) }
         .toSet()
 }
+
+inline fun <reified AnnotationType> annotatedPropertiesFromClass(it: Class<*>) where AnnotationType : Annotation =
+    it.kotlin.declaredMemberProperties
+        .filter { property ->
+            property.findAnnotation<AnnotationType>() != null && property is KMutableProperty<*>
+        }
+        .map { property ->
+            property as KMutableProperty<*>
+        }
+
+fun classFromFile(it: File, packageName: String): Class<*> {
+    val clazz =
+        it.path.substring(it.path.indexOf(packageName.replace(".", "/"))).substringBefore(".")
+            .substringBefore("$").replace("/", ".")
+    return Class.forName(clazz)
+}
+
+fun filesOfHost(host: Any, packageName: String) = host::class.java.classLoader
+    .resources(packageName.replace(".", "/"))
+    .toList()
+    .flatMap {
+        File(it.file)
+            .walkTopDown()
+            .filter { file ->
+                file.isFile
+            }
+            .toList()
+    }

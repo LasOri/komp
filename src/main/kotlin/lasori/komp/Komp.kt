@@ -10,7 +10,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.serializer
-import lasori.komp.annotation.Kompose
+import lasori.komp.annotation.Kompify
 import lasori.komp.data.CodingKey
 import lasori.komp.data.Convertible
 import lasori.komp.data.extension.extractPath
@@ -35,10 +35,10 @@ object Komp {
 
     private val stringGenerator = GenericGenerator(random = StringRandom())
 
-    val json = Json {
+    private val json = Json {
         prettyPrint = false
     }
-    var jsonDataFactory = JsonElementFactory(
+    private var jsonDataFactory = JsonElementFactory(
         boolGenerator = GenericGenerator(random = BoolRandom()),
         intGenerator = GenericGenerator(random = IntRandom()),
         doubleGenerator = GenericGenerator(random = DoubleRandom()),
@@ -56,55 +56,26 @@ object Komp {
               stringType: StringType = StringType.random,
               vararg customGenerators: Generator<Convertible<*, *>>) {
         initJsonDataFactory(intType, doubleType, stringType, customGenerators)
-        val set = scanAnnotatedProperties<Kompose>(host)
+        val set = scanAnnotatedProperties<Kompify>(host)
         set.forEach { property ->
             val serializer = serializer(property.returnType)
-            val value = kompose(serializer)
+            val value = kompify(serializer)
 
             property.isAccessible = true
             property.setter.call(host, value)
         }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
-    inline fun <reified Value>kompose(predefinedValues: Map<KProperty1<Value, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Value {
-        var result: Value? = null
-        var jsonData: JsonElement = JsonObject(emptyMap())
-        do {
-            try {
-                val jsonString = this.json.encodeToString(jsonData)
-                result = this.json.decodeFromString(jsonString)
-            } catch (e: MissingFieldException) {
-                e.extractPath()?.let { path ->
-                    e.missingFields.forEach {
-                        val newPath = path.toMutableList().apply {
-                            add(CodingKey(it))
-                        }
-                        val value = this.jsonValue(predefinedValues as Map<KProperty1<*, *>, Convertible<*, *>>?, it)
-                        val updatedJsonData =  jsonData.update(newPath, value)
-                        jsonData = updatedJsonData
-                    }
-                }
-            } catch (e: Exception) {
-                val path = e.extractPath()
-                val type = e.extractType()
-
-                val jsonElement: JsonElement? = convertibles.firstOrNull {
-                    it.type == type
-                }?.toJsonElement(json)
-                if (path != null && type != null) {
-                    val value = jsonElement ?: jsonDataFactory.create(type)
-                    val newJsonData = jsonData.update(path, value)
-                    jsonData = newJsonData as JsonObject
-                } else {
-                    e.printStackTrace()
-                }
-            }
-        } while (result == null)
-        return result
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified Value>kompify(predefinedValues: Map<KProperty1<Value, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Value {
+        return commonKompifier(predefinedValues as Map<KProperty1<*, *>, Convertible<*, *>>?, convertibles.toList()) { json, jsonData ->
+            val jsonString = json.encodeToString(jsonData)
+            val value: Value = json.decodeFromString(jsonString)
+            value as Any
+        }  as Value
     }
 
-    fun jsonValue(predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>?, missingField: String): JsonElement {
+    private fun jsonValue(predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>?, missingField: String): JsonElement {
         var value = jsonDataFactory.create("object")
         predefinedValues?.keys?.firstOrNull { key ->
             key.name.lowercase() == missingField.lowercase()
@@ -120,13 +91,19 @@ object Komp {
         }
     }
 
-    private fun kompose(serializer: DeserializationStrategy<*>, predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Any {
+    private fun kompify(serializer: DeserializationStrategy<*>, predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Any {
+        return commonKompifier(predefinedValues, convertibles.toList()) { json, jsonData ->
+            val jsonString = json.encodeToString(jsonData)
+            json.decodeFromString(serializer, jsonString)!!
+        }
+    }
+    @OptIn(ExperimentalSerializationApi::class)
+    fun commonKompifier(predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>? = null, convertibles: List<Convertible<*, *>>, jsonizer: (json: Json, jsonData: JsonElement) -> (Any)): Any {
         var result: Any? = null
         var jsonData: JsonElement = JsonObject(emptyMap())
         do {
             try {
-                val jsonString = this.json.encodeToString(jsonData)
-                result = this.json.decodeFromString(serializer, jsonString)
+                result = jsonizer(json, jsonData)
             } catch (e: MissingFieldException) {
                 e.extractPath()?.let { path ->
                     e.missingFields.forEach {

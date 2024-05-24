@@ -1,7 +1,7 @@
 package lasori.komp
 
 import kotlinx.serialization.builtins.serializer
-import lasori.komp.annotation.Kompose
+import lasori.komp.annotation.Kompify
 import lasori.komp.data.Convertible
 import lasori.komp.data.generator.Generator
 import lasori.komp.data.generator.valueType.DoubleType
@@ -16,9 +16,9 @@ import kotlin.test.assertEquals
 
 class KompTest {
 
-    lateinit var komp: Komp
+    private lateinit var komp: Komp
 
-    @Kompose
+    @Kompify
     lateinit var testData: TestData
 
     @BeforeTest
@@ -39,10 +39,10 @@ class KompTest {
     }
 
     @Test
-    fun testKompose() = run {
+    fun testKompose() {
         val expectedValue = "TestText"
 
-        val testData: TestData = komp.kompose(predefinedValues = mapOf(TestData::text to Convertible(expectedValue, String.serializer())))
+        val testData: TestData = komp.kompify(predefinedValues = mapOf(TestData::text to Convertible(expectedValue, String.serializer())))
 
         println("\n\n$testData\n\n".trimIndent())
 
@@ -51,7 +51,7 @@ class KompTest {
     }
 
     @Test
-    fun testKompose_withAnnotation() = run {
+    fun testKompose_withAnnotation() {
         assertNotNull(testData)
     }
 

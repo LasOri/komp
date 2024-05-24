@@ -1,21 +1,13 @@
 package lasori.komp
 
 import kotlinx.serialization.DeserializationStrategy
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.MissingFieldException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.serializer
 import lasori.komp.annotation.Kompify
-import lasori.komp.data.CodingKey
 import lasori.komp.data.Convertible
-import lasori.komp.data.extension.extractPath
-import lasori.komp.data.extension.extractType
-import lasori.komp.data.extension.update
 import lasori.komp.data.factory.JsonElementFactory
 import lasori.komp.data.generator.Generator
 import lasori.komp.data.generator.GenericGenerator
@@ -50,6 +42,8 @@ object Komp {
         this.json.parseToJsonElement(it)
     }
 
+    val kompifier = Kompifier(json, jsonDataFactory)
+
     fun setup(host: Any,
               intType: IntType = IntType.random,
               doubleType: DoubleType = DoubleType.random,
@@ -68,70 +62,24 @@ object Komp {
 
     @Suppress("UNCHECKED_CAST")
     inline fun <reified Value>kompify(predefinedValues: Map<KProperty1<Value, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Value {
-        return commonKompifier(predefinedValues as Map<KProperty1<*, *>, Convertible<*, *>>?, convertibles.toList()) { json, jsonData ->
+        return this.kompifier.kompify(predefinedValues as Map<KProperty1<*, *>, Convertible<*, *>>?, convertibles.toList()) { json, jsonData ->
             val jsonString = json.encodeToString(jsonData)
             val value: Value = json.decodeFromString(jsonString)
             value as Any
         }  as Value
     }
 
-    private fun jsonValue(predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>?, missingField: String): JsonElement {
-        var value = jsonDataFactory.create("object")
-        predefinedValues?.keys?.firstOrNull { key ->
-            key.name.lowercase() == missingField.lowercase()
-        }?.let { key ->
-            value = predefinedValues[key]!!.toJsonElement(json)
+    private fun kompify(serializer: DeserializationStrategy<*>, predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Any {
+        return this.kompifier.kompify(predefinedValues, convertibles.toList()) { json, jsonData ->
+            val jsonString = json.encodeToString(jsonData)
+            json.decodeFromString(serializer, jsonString)!!
         }
-        return value
     }
 
     private inline fun <reified ValueType>predefinedList(key: String): List<ValueType>? {
         return predefinedValues?.jsonObject?.get(key)?.let {
             json.decodeFromJsonElement(it)
         }
-    }
-
-    private fun kompify(serializer: DeserializationStrategy<*>, predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>? = null, vararg convertibles: Convertible<*, *>): Any {
-        return commonKompifier(predefinedValues, convertibles.toList()) { json, jsonData ->
-            val jsonString = json.encodeToString(jsonData)
-            json.decodeFromString(serializer, jsonString)!!
-        }
-    }
-    @OptIn(ExperimentalSerializationApi::class)
-    fun commonKompifier(predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>? = null, convertibles: List<Convertible<*, *>>, jsonizer: (json: Json, jsonData: JsonElement) -> (Any)): Any {
-        var result: Any? = null
-        var jsonData: JsonElement = JsonObject(emptyMap())
-        do {
-            try {
-                result = jsonizer(json, jsonData)
-            } catch (e: MissingFieldException) {
-                e.extractPath()?.let { path ->
-                    e.missingFields.forEach {
-                        val newPath = path.toMutableList().apply {
-                            add(CodingKey(it))
-                        }
-                        val value = this.jsonValue(predefinedValues, it)
-                        val updatedJsonData =  jsonData.update(newPath, value)
-                        jsonData = updatedJsonData
-                    }
-                }
-            } catch (e: Exception) {
-                val path = e.extractPath()
-                val type = e.extractType()
-
-                val jsonElement: JsonElement? = convertibles.firstOrNull {
-                    it.type == type
-                }?.toJsonElement(json)
-                if (path != null && type != null) {
-                    val value = jsonElement ?: jsonDataFactory.create(type)
-                    val newJsonData = jsonData.update(path, value)
-                    jsonData = newJsonData as JsonObject
-                } else {
-                    e.printStackTrace()
-                }
-            }
-        } while (result == null)
-        return result
     }
 
     private fun initJsonDataFactory(

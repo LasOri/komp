@@ -28,9 +28,14 @@ But even with its limitations, it can be useful for testing purposes.
 
 To use KOMP in your project, add the following dependency to your `build.gradle.kts` file:
 
-```kotlin
+```gradle
+
+repositories {
+    maven("https://jitpack.io")
+}
+
 dependencies {
-    implementation("com.example:komp:1.0.0")
+    implementation("com.github.LasOri:komp:0.1.0")
 }
 ```
 

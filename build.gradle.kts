@@ -35,17 +35,12 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
 
 publishing {
     publications {
-        create<MavenPublication>("mavenJava") {
+        create<MavenPublication>("maven") {
             from(components["java"])
 
             groupId = group as String
             artifactId = "komp"
             version = "0.1.0"
-        }
-    }
-    repositories {
-        maven {
-            url = uri("file://${buildDir}/../local-repo")
         }
     }
 }

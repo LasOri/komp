@@ -11,10 +11,11 @@ import lasori.komp.data.extension.extractPath
 import lasori.komp.data.extension.extractType
 import lasori.komp.data.extension.update
 import lasori.komp.data.factory.JsonElementFactory
+import lasori.komp.exception.KompifingFailedException
 import kotlin.reflect.KProperty1
 
 class Kompifier(private val json: Json,
-                private val jsonDataFactory: JsonElementFactory) {
+                var jsonDataFactory: JsonElementFactory) {
 
     @OptIn(ExperimentalSerializationApi::class)
     fun kompify(predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>? = null,
@@ -22,10 +23,12 @@ class Kompifier(private val json: Json,
                 jsonizer: (json: Json, jsonData: JsonElement) -> (Any)): Any {
         var result: Any? = null
         var jsonData: JsonElement = JsonObject(emptyMap())
+        var exceptions: MutableSet<String> = mutableSetOf()
         do {
             try {
                 result = jsonizer(json, jsonData)
             } catch (e: MissingFieldException) {
+                exceptions = detectExceptionLoop(exceptions, e)
                 e.extractPath()?.let { path ->
                     e.missingFields.forEach {
                         val newPath = path.toMutableList().apply {
@@ -37,6 +40,7 @@ class Kompifier(private val json: Json,
                     }
                 }
             } catch (e: Exception) {
+                exceptions = detectExceptionLoop(exceptions, e)
                 val path = e.extractPath()
                 val type = e.extractType()
 
@@ -48,11 +52,20 @@ class Kompifier(private val json: Json,
                     val newJsonData = jsonData.update(path, value)
                     jsonData = newJsonData as JsonObject
                 } else {
-                    e.printStackTrace()
+                    throw KompifingFailedException("Path: $path or Type: $type is null", e)
                 }
             }
         } while (result == null)
         return result
+    }
+
+    private fun detectExceptionLoop(exceptions: MutableSet<String>, e: Exception): MutableSet<String> {
+        val message = e.message ?: ""
+        if (exceptions.contains(message)) {
+            throw KompifingFailedException("Exception loop detected", e)
+        }
+        exceptions.add(message)
+        return exceptions
     }
 
     private fun jsonValue(predefinedValues: Map<KProperty1<*, *>, Convertible<*, *>>?, missingField: String): JsonElement {

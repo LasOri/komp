@@ -50,6 +50,7 @@ object Komp {
               stringType: StringType = StringType.random,
               vararg customGenerators: Generator<Convertible<*, *>>) {
         initJsonDataFactory(intType, doubleType, stringType, customGenerators)
+        kompifier.jsonDataFactory = jsonDataFactory
         val set = scanAnnotatedProperties<Kompify>(host)
         set.forEach { property ->
             val serializer = serializer(property.returnType)

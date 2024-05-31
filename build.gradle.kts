@@ -1,10 +1,11 @@
 plugins {
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.serialization") version "1.9.22"
+    id("maven-publish")
 }
 
-group = "lasori"
-version = "0.1.0-SNAPSHOT"
+group = "com.github.LasOri"
+version = "0.1.0"
 
 repositories {
     mavenCentral()
@@ -19,4 +20,32 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = "21"
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+
+            groupId = group as String
+            artifactId = "komp"
+            version = "0.1.0"
+        }
+    }
+    repositories {
+        maven {
+            url = uri("file://${buildDir}/../local-repo")
+        }
+    }
 }

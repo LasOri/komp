@@ -1,0 +1,103 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.github.LasOri",
+    "module": "komp",
+    "version": "0.1.0",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "8.5"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.9.23"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "komp-0.1.0.jar",
+          "url": "komp-0.1.0.jar",
+          "size": 53167,
+          "sha512": "4e76939c63c9e774c91ece37ef80ea2b1e28aee16197d9c9cc66405ed853f7b0ecc05971784deeece9a821492d4e1f3e9748ec8da179c34844eaa082eaa93edd",
+          "sha256": "ed9f3dae76ed1b4339d4f26ab2a36b8cb749135b106da56fad9a1a035a2072c3",
+          "sha1": "2718cda07d2cffc708ed8bb93fa826bd88c9a9aa",
+          "md5": "b1ee159913c172f6ef877603b3e39a39"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.environment": "standard-jvm",
+        "org.gradle.jvm.version": 21,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime",
+        "org.jetbrains.kotlin.platform.type": "jvm"
+      },
+      "dependencies": [
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-reflect",
+          "version": {
+            "requires": "1.9.23"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlinx",
+          "module": "kotlinx-serialization-json",
+          "version": {
+            "requires": "1.6.3"
+          }
+        },
+        {
+          "group": "io.mockk",
+          "module": "mockk",
+          "version": {
+            "requires": "1.13.10"
+          }
+        },
+        {
+          "group": "org.jetbrains.kotlin",
+          "module": "kotlin-stdlib",
+          "version": {
+            "requires": "1.9.23"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "komp-0.1.0.jar",
+          "url": "komp-0.1.0.jar",
+          "size": 53167,
+          "sha512": "4e76939c63c9e774c91ece37ef80ea2b1e28aee16197d9c9cc66405ed853f7b0ecc05971784deeece9a821492d4e1f3e9748ec8da179c34844eaa082eaa93edd",
+          "sha256": "ed9f3dae76ed1b4339d4f26ab2a36b8cb749135b106da56fad9a1a035a2072c3",
+          "sha1": "2718cda07d2cffc708ed8bb93fa826bd88c9a9aa",
+          "md5": "b1ee159913c172f6ef877603b3e39a39"
+        }
+      ]
+    }
+  ]
+}

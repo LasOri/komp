@@ -20,7 +20,9 @@ import lasori.komp.data.generator.valueType.IntType
 import lasori.komp.data.generator.valueType.StringType
 import lasori.komp.function.loadResource
 import lasori.komp.function.scanAnnotatedProperties
+import kotlin.reflect.KCallable
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.internal.impl.builtins.functions.FunctionTypeKind.KFunction
 import kotlin.reflect.jvm.isAccessible
 
 object Komp {
@@ -30,6 +32,7 @@ object Komp {
     private val json = Json {
         prettyPrint = false
     }
+    @Volatile
     private var jsonDataFactory = JsonElementFactory(
         boolGenerator = GenericGenerator(random = BoolRandom()),
         intGenerator = GenericGenerator(random = IntRandom()),
@@ -44,12 +47,15 @@ object Komp {
 
     val kompifier = Kompifier(json, jsonDataFactory)
 
+    @Synchronized
     fun setup(host: Any,
               intType: IntType = IntType.random,
               doubleType: DoubleType = DoubleType.random,
               stringType: StringType = StringType.random,
+              seed: Long? = null,
+              collectionSize: Int = 0,
               vararg customGenerators: Generator<Convertible<*, *>>) {
-        initJsonDataFactory(intType, doubleType, stringType, customGenerators)
+        initJsonDataFactory(intType, doubleType, stringType, seed, collectionSize, customGenerators)
         kompifier.jsonDataFactory = jsonDataFactory
         val set = scanAnnotatedProperties<Kompify>(host)
         set.forEach { property ->
@@ -87,51 +93,60 @@ object Komp {
         intType: IntType,
         doubleType: DoubleType,
         stringType: StringType,
+        seed: Long? = null,
+        collectionSize: Int = 0,
         customGenerators: Array<out Generator<Convertible<*, *>>>
     ) {
         val intGenerator = when (intType) {
-            IntType.random -> GenericGenerator(random = IntRandom())
+            IntType.random -> GenericGenerator(random = IntRandom(seed), seed = seed)
             IntType.prime -> GenericGenerator(
-                random = IntRandom(),
-                preparedValues = predefinedList("primeNumbers")
+                random = IntRandom(seed),
+                preparedValues = predefinedList("primeNumbers"),
+                seed = seed
             )
 
             IntType.fibonacci -> GenericGenerator(
-                random = IntRandom(),
-                preparedValues = predefinedList("fibonacciNumbers")
+                random = IntRandom(seed),
+                preparedValues = predefinedList("fibonacciNumbers"),
+                seed = seed
             )
         }
         val doubleGenerator = when (doubleType) {
-            DoubleType.random -> GenericGenerator(random = DoubleRandom())
+            DoubleType.random -> GenericGenerator(random = DoubleRandom(seed), seed = seed)
             DoubleType.famousConstants -> GenericGenerator(
-                random = DoubleRandom(),
-                preparedValues = predefinedList("famousConstants")
+                random = DoubleRandom(seed),
+                preparedValues = predefinedList("famousConstants"),
+                seed = seed
             )
         }
         val stringGenerator = when (stringType) {
-            StringType.random -> GenericGenerator(random = StringRandom())
+            StringType.random -> GenericGenerator(random = StringRandom(seed), seed = seed)
             StringType.movieQuote -> GenericGenerator(
-                random = StringRandom(),
-                preparedValues = predefinedList("movieQuotes")
+                random = StringRandom(seed),
+                preparedValues = predefinedList("movieQuotes"),
+                seed = seed
             )
 
             StringType.movieHero -> GenericGenerator(
-                random = StringRandom(),
-                preparedValues = predefinedList("movieHeroes")
+                random = StringRandom(seed),
+                preparedValues = predefinedList("movieHeroes"),
+                seed = seed
             )
 
             StringType.movieVillain -> GenericGenerator(
-                random = StringRandom(),
-                preparedValues = predefinedList("movieVillains")
+                random = StringRandom(seed),
+                preparedValues = predefinedList("movieVillains"),
+                seed = seed
             )
         }
         jsonDataFactory = JsonElementFactory(
-            boolGenerator = GenericGenerator(random = BoolRandom()),
+            boolGenerator = GenericGenerator(random = BoolRandom(seed), seed = seed),
             intGenerator = intGenerator,
             doubleGenerator = doubleGenerator,
             stringGenerator = stringGenerator,
             customGenerators = customGenerators.toList(),
-            json = json
+            json = json,
+            collectionSize = collectionSize
         )
     }
 }

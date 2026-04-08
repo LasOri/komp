@@ -1,7 +1,9 @@
 package lasori.komp.data.generator.random
 
-class BoolRandom: Random<Boolean> {
+class BoolRandom(seed: Long? = null): Random<Boolean> {
+    private val random = seed?.let { kotlin.random.Random(it) } ?: kotlin.random.Random
+
     override fun next(): Boolean {
-        return kotlin.random.Random.nextBoolean()
+        return random.nextBoolean()
     }
 }

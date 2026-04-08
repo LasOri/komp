@@ -15,7 +15,8 @@ class JsonElementFactory(
     private val doubleGenerator: Generator<Double>,
     private val stringGenerator: Generator<String>,
     private val customGenerators: List<Generator<Convertible<*, *>>>,
-    private val json: Json
+    private val json: Json,
+    private val collectionSize: Int = 0
 ) : Factory<String, JsonElement> {
 
     override fun create(value: String): JsonElement {
@@ -24,8 +25,8 @@ class JsonElementFactory(
             "numeric" -> JsonPrimitive(intGenerator.generate())
             "double" -> JsonPrimitive(doubleGenerator.generate())
             "string" -> JsonPrimitive(stringGenerator.generate())
-            "array" -> JsonArray(emptyList())
-            "object" -> JsonObject(emptyMap())
+            "array" -> JsonArray((1..collectionSize).map { JsonPrimitive(stringGenerator.generate()) })
+            "object" -> JsonObject((1..collectionSize).associate { "key$it" to JsonPrimitive(stringGenerator.generate()) })
             "null" -> JsonNull
             else -> {
                 val customGenerator = customGenerators.find { it.generate().type.lowercase() == value.lowercase() }

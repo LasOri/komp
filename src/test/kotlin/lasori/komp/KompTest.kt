@@ -35,7 +35,7 @@ class KompTest {
             intType = IntType.prime,
             doubleType = DoubleType.famousConstants,
             stringType = StringType.movieQuote,
-            testEnumGenerator)
+            customGenerators = arrayOf(testEnumGenerator))
     }
 
     @Test

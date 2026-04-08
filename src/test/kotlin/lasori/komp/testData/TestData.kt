@@ -38,3 +38,11 @@ enum class TestEnum {
     bad,
     ugly
 }
+
+@Serializable
+data class SimpleData(
+    val text: String,
+    val num: Int,
+    val floating: Double,
+    val bool: Boolean
+)
